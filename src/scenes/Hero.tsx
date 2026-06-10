@@ -2,7 +2,7 @@
 // Liquid-chrome morphing blob + shard assembly + cloud layers + sky environment.
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { Float, Environment, Lightformer, Sparkles, MeshDistortMaterial } from '@react-three/drei'
 import { cloudVertex, cloudFragment } from '../shaders/cloud.glsl.ts'
 import { useReducedMotion } from '../hooks/useLenis.ts'
@@ -82,14 +82,15 @@ function AssemblyShards({ progress }: { progress: React.MutableRefObject<number>
 export function ChromeBlob({
   assembly,
   flareTarget,
+  mouse,
 }: {
   assembly: React.MutableRefObject<number>
   flareTarget: React.MutableRefObject<THREE.Vector3>
+  mouse: React.MutableRefObject<{ x: number; y: number }>
 }) {
   const group = useRef<THREE.Group>(null!)
   const blob = useRef<THREE.Mesh>(null!)
   const reduced = useReducedMotion()
-  const { pointer } = useThree()
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
@@ -103,8 +104,8 @@ export function ChromeBlob({
       blob.current.rotation.y = t * 0.12
       blob.current.rotation.x = Math.sin(t * 0.2) * 0.15
       // mouse parallax — micro, weightless
-      group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, pointer.x * 0.25, 0.04)
-      group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, pointer.y * 0.18, 0.04)
+      group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, mouse.current.x * 0.25, 0.04)
+      group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, -mouse.current.y * 0.18, 0.04)
     }
 
     // publish the brightest-specular point (upper-left rim) for the DOM lens flare
@@ -154,20 +155,11 @@ function CloudLayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   )
-  useFrame(({ clock, pointer }) => {
+  useFrame(({ clock }) => {
     mat.current.uniforms.uTime.value = clock.getElapsedTime()
-    // gentle pointer parallax per layer (deeper layers move less)
-    if (!reduced) {
-      const m = mat.current.userData
-      m.px = THREE.MathUtils.lerp(m.px ?? 0, pointer.x * (z + 10) * 0.012, 0.03)
-      ;(mat.current as any).__mesh?.position.setX(m.px)
-    }
   })
   return (
-    <mesh
-      position={[0, y, z]}
-      onUpdate={(self) => ((self.material as any).__mesh = self)}
-    >
+    <mesh position={[0, y, z]}>
       <planeGeometry args={scale} />
       <shaderMaterial
         ref={mat}
@@ -185,13 +177,15 @@ function CloudLayer({
 export function HeroScene({
   assembly,
   flareTarget,
+  mouse,
 }: {
   assembly: React.MutableRefObject<number>
   flareTarget: React.MutableRefObject<THREE.Vector3>
+  mouse: React.MutableRefObject<{ x: number; y: number }>
 }) {
   return (
     <group>
-      <ChromeBlob assembly={assembly} flareTarget={flareTarget} />
+      <ChromeBlob assembly={assembly} flareTarget={flareTarget} mouse={mouse} />
       {/* sea of clouds below + drifting haze behind */}
       <CloudLayer y={-2.6} z={-3} scale={[26, 7]} drift={0.012} coverage={0.55} opacityMul={1} />
       <CloudLayer y={-1.8} z={-6} scale={[36, 9]} drift={0.008} coverage={0.45} opacityMul={0.8} />

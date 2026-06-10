@@ -44,3 +44,6 @@ Cross-fade via fog/bloom, never hard cuts. Sections lazy-mount; heavy scenes unm
 4. §02 Crystal City (next — the hero set-piece)
 5. §01, §03, §04, §05 + custom cursor + magnetic hover
 6. Performance pass + strip leva
+
+## Changelog
+- v0.1.1 — Scroll fix: Canvas is pointer-events:none (touch-action pan-y) so wheel/touch never get swallowed; mouse parallax now reads a window-level listener. Added ScrollRig: global scroll progress flies the camera up/back/tilting through the cloud layers (damped lerp 0.06). Hero DOM (#hero-dom: lockup+cue+flare) fades while leaving room 00. §01–§05 now render frost-glass placeholder cards with blur-in reveals so the journey has visible beats until the scenes land.

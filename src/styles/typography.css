@@ -194,3 +194,39 @@ section.beat[data-room='crt'] { background: transparent; } /* scene paints the v
 @media (prefers-reduced-motion: reduce) {
   .scroll-cue svg, .boot-bar i { animation: none; }
 }
+
+/* ---------- Room placeholder cards (§01–§05) ---------- */
+.room-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, 86vw);
+  z-index: 2;
+}
+.room-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.45em;
+  text-transform: uppercase;
+  color: var(--cobalt);
+  margin-bottom: 0.9rem;
+}
+.room-title {
+  font-size: clamp(30px, 5vw, 52px);
+  margin-bottom: 0.9rem;
+}
+.room-copy {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--deep-blue);
+  opacity: 0.8;
+}
+.room-status {
+  margin-top: 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--steel-blue);
+}
