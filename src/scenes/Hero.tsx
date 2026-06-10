@@ -140,7 +140,7 @@ export function ChromeBlob({
 }
 
 /* ---------- Parallax cloud layers (procedural fbm, no textures) ---------- */
-function CloudLayer({
+export function CloudLayer({
   y, z, scale, drift, coverage, opacityMul,
 }: { y: number; z: number; scale: [number, number]; drift: number; coverage: number; opacityMul: number }) {
   const mat = useRef<THREE.ShaderMaterial>(null!)

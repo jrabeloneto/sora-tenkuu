@@ -1,5 +1,6 @@
-// App.tsx — SORA / 天空 · master composition
-// Persistent R3F camera + Lenis-driven GSAP master timeline (rooms cross-fade, never hard cut).
+// App.tsx — SORA / 天空 · master composition (full experience)
+// One persistent Canvas + camera flying a continuous vertical ascent:
+// hero → chrome forms → crystal city → crt room → artifact archive → dissolve.
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
@@ -9,7 +10,13 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 import { HeroScene, SkyEnvironment } from './scenes/Hero.tsx'
+import { ChromeFormsScene } from './scenes/ChromeForms.tsx'
+import { CrystalCityScene } from './scenes/CrystalCity.tsx'
+import { CRTRoomScene } from './scenes/CRTRoom.tsx'
+import { ArtifactArchiveScene, OutroScene } from './scenes/ArtifactArchive.tsx'
+import { CameraScript, RoomGroup } from './components/CameraScript.tsx'
 import { LensFlare, LoadingBoot, ScrollCue, FrostPanel } from './components/Overlay.tsx'
+import { CustomCursor } from './components/CustomCursor.tsx'
 import { useLenis, useReducedMotion } from './hooks/useLenis.ts'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -25,58 +32,58 @@ function CameraBridge({ cameraRef }: { cameraRef: React.MutableRefObject<THREE.C
   return null
 }
 
-/* Camera choreography — scroll progress (0..1 across the whole page) flies the
-   camera up and past the blob, through the cloud layers. Weightless, damped. */
-function ScrollRig({ progress }: { progress: React.MutableRefObject<number> }) {
-  const reduced = useReducedMotion()
-  useFrame(({ camera }) => {
-    if (reduced) return
-    const p = progress.current
-    // ascend + pull back: hero room occupies p 0→~0.16 (1 of 6 screens)
-    const targetY = p * 14            // climb into the zenith
-    const targetZ = 6 + p * 5         // drift away from the blob
-    const targetRotX = -p * 0.35      // tilt down toward the cloud sea
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetY, 0.06)
-    camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetZ, 0.06)
-    camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, targetRotX, 0.06)
+/* PostFX — tuned on the hero; CRT room cranks aberration + grain via crtFx ref.
+   Mobile fallback: CA dropped, lighter bloom (brief §5). */
+function PostFX({ crtFx }: { crtFx: React.MutableRefObject<number> }) {
+  const caRef = useRef<any>(null)
+  const noiseRef = useRef<any>(null)
+  useFrame(() => {
+    const k = crtFx.current
+    if (caRef.current) {
+      caRef.current.offset.set(0.0009 * (1 + k * 7), 0.0006 * (1 + k * 7))
+    }
+    if (noiseRef.current?.blendMode?.opacity) {
+      noiseRef.current.blendMode.opacity.value = 0.055 + k * 0.3
+    }
   })
-  return null
-}
-
-/* PostFX pass — tuned on the hero (build order step 3).
-   Mobile fallback: drop chromatic aberration, lighter bloom (brief §5). */
-function PostFX() {
   return (
     <EffectComposer multisampling={0}>
       <Bloom mipmapBlur intensity={IS_COARSE ? 0.7 : 1.15} luminanceThreshold={0.78} luminanceSmoothing={0.2} />
-      {IS_COARSE ? <></> : <ChromaticAberration offset={new THREE.Vector2(0.0009, 0.0006)} />}
-      <Noise opacity={0.055} />
+      {IS_COARSE ? <></> : <ChromaticAberration ref={caRef} offset={new THREE.Vector2(0.0009, 0.0006)} />}
+      <Noise ref={noiseRef} opacity={0.055} />
       <Vignette eskil={false} offset={0.18} darkness={0.42} />
     </EffectComposer>
   )
 }
 
-const ROOMS = [
-  { id: 'room-chrome-forms', num: '§01', title: 'CHROME FORMS', jp: '鏡', copy: 'A swarm of liquid-metal bodies, drawn to your touch.' },
-  { id: 'room-crystal-city', num: '§02', title: 'CRYSTAL CITY', jp: '未来', copy: 'A flythrough above the cloud sea — glass towers, ribbon roads.' },
-  { id: 'room-crt', num: '§03', title: 'CRT ROOM', jp: '監視', copy: 'A cold breath of static. The monitors are watching back.' },
-  { id: 'room-archive', num: '§04', title: 'ARTIFACT ARCHIVE', jp: '2000', copy: 'The device museum — translucent plastic, monophonic dreams.' },
-  { id: 'room-outro', num: '§05', title: 'DISSOLVE', jp: '夢', copy: 'Everything returns to the sky.' },
-]
+/* §01 floating captions */
+const FORM_CAPTIONS = [
+  { top: '18%', side: 'left', off: '8%', jp: '鏡', title: 'MIRROR BODIES', copy: 'Liquid metal holds no shape of its own — only the sky it reflects.' },
+  { top: '46%', side: 'right', off: '8%', jp: '引力', title: 'MAGNETIC', copy: 'Move closer. The swarm leans toward your hand like iron to a lodestone.' },
+  { top: '74%', side: 'left', off: '12%', jp: '無重力', title: 'WEIGHTLESS', copy: 'Nothing here falls. 2002 never believed in gravity.' },
+] as const
+
+/* §04 device dossiers */
+const DEVICES = [
+  { year: '2002', name: 'CLAMSHELL', jp: 'ガラケー', copy: 'Translucent blue polycarbonate, a hinge that snapped shut like punctuation. Calls ended with a gesture.', detail: 'The keitai-era flip phone — a pocket future in frosted shell, the circuit visible like an x-ray, antenna charms swinging from the hinge. Its dual screens promised a world where hardware itself was jewelry.' },
+  { year: '2000', name: 'NOKIA 3310', jp: '不滅', copy: 'Monophonic dreams and a battery that outlived the weekend. 86 grams of certainty.', detail: 'Snake II. Composer ringtones. Xpress-on covers in cobalt and silver. The 3310 never needed a case — the floor needed protection from it. The most honest industrial design of its decade.' },
+  { year: '1999', name: 'CRT MONITOR', jp: 'ブラウン管', copy: 'Seventeen inches of curved glass, humming at 60Hz. The static kissed your arm hair.', detail: 'The whole early web lived behind this glass — degaussing with a THUNK, scanlines you could lean into, phosphor glow at 2AM. Every Y2K render-farm dream was previewed on one of these.' },
+  { year: '2001', name: 'MINIDISC', jp: '光学', copy: 'A disc inside a shield inside your pocket. ATRAC compression, anti-shock memory, pure object.', detail: 'A beautiful failure: 74 minutes of magneto-optical music in a 7cm square, the shutter sliding open like a tiny garage door. It lost the war to MP3 but won the design century.' },
+] as const
 
 export default function App() {
   useLenis()
   const reduced = useReducedMotion()
 
-  const assembly = useRef(0)                       // 0 = shards scattered → 1 = blob assembled
-  const scrollProgress = useRef(0)                 // 0..1 across the full document
-  const mouse = useRef({ x: 0, y: 0 })             // normalized -1..1, window-level
+  const assembly = useRef(0)
+  const crtFx = useRef(0)
+  const mouse = useRef({ x: 0, y: 0 })
   const flareTarget = useRef(new THREE.Vector3(0, 0.7, 0))
   const cameraRef = useRef<THREE.Camera | null>(null)
   const lockupRef = useRef<HTMLDivElement>(null!)
   const [booted, setBooted] = useState(false)
+  const [device, setDevice] = useState<number | null>(null)
 
-  /* boot done → run the chrome assembly entry */
   const onBootDone = useCallback(() => {
     setBooted(true)
     gsap.to(assembly, { current: 1, duration: reduced ? 0 : 2.6, ease: 'power3.inOut' })
@@ -89,8 +96,7 @@ export default function App() {
     }
   }, [reduced])
 
-  /* single window-level mouse listener feeds 3D parallax + logotype micro-shift.
-     (Canvas is pointer-events:none so scroll/touch always pass through it.) */
+  /* window-level mouse → 3D parallax + logotype micro-shift (canvas is pointer-events:none) */
   useEffect(() => {
     if (reduced || IS_COARSE) return
     const onMove = (e: MouseEvent) => {
@@ -104,67 +110,118 @@ export default function App() {
     return () => window.removeEventListener('mousemove', onMove)
   }, [reduced])
 
-  /* master scroll wiring:
-     1) global progress for the camera rig
-     2) hero DOM (lockup + cue + flare) fades out while leaving room 00
-     3) room cards drift in */
+  /* master scroll wiring */
   useEffect(() => {
-    const global = ScrollTrigger.create({
-      start: 0,
-      end: 'max',
-      onUpdate: (self) => (scrollProgress.current = self.progress),
-    })
+    const kills: (() => void)[] = []
+    const regTween = (x: gsap.core.Tween) => {
+      kills.push(() => { x.scrollTrigger?.kill(); x.kill() })
+      return x
+    }
+    const regST = (x: ScrollTrigger) => {
+      kills.push(() => x.kill())
+      return x
+    }
 
-    const heroFade = gsap.to('#hero-dom', {
-      opacity: 0,
-      ease: 'none',
+    // hero DOM fades out leaving room 00
+    regTween(gsap.to('#hero-dom', {
+      opacity: 0, ease: 'none',
       scrollTrigger: { trigger: '#room-hero', start: 'center top', end: 'bottom top', scrub: true },
-    })
+    }))
 
-    const cardTweens = gsap.utils.toArray<HTMLElement>('.room-card').map((card) =>
-      gsap.fromTo(
-        card,
-        { opacity: 0, y: 60, filter: 'blur(10px)' },
-        {
-          opacity: 1, y: 0, filter: 'blur(0px)', ease: 'power3.out', duration: 1.1,
-          scrollTrigger: { trigger: card, start: 'top 75%' },
-        }
-      )
+    // frost captions / cards blur in
+    gsap.utils.toArray<HTMLElement>('.reveal').forEach((el) =>
+      regTween(gsap.fromTo(el,
+        { opacity: 0, y: 50, filter: 'blur(10px)' },
+        { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.1, ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 80%' } }
+      ))
     )
 
-    return () => {
-      global.kill()
-      heroFade.scrollTrigger?.kill()
-      heroFade.kill()
-      cardTweens.forEach((t) => { t.scrollTrigger?.kill(); t.kill() })
+    // CRT room: void backdrop + scanline overlay + postfx crank (triangle curve)
+    const voidEl = document.getElementById('bg-void')
+    const scanEl = document.getElementById('scanlines')
+    regST(ScrollTrigger.create({
+      trigger: '#room-crt', start: 'top 70%', end: 'bottom 30%', scrub: true,
+      onUpdate: (self) => {
+        const k = Math.sin(self.progress * Math.PI)
+        crtFx.current = k
+        if (voidEl) voidEl.style.opacity = String(Math.min(k * 1.4, 0.92))
+        if (scanEl) scanEl.style.opacity = String(k * 0.5)
+      },
+    }))
+
+    // archive: editorial strip slides horizontally with the camera sweep
+    const strip = document.getElementById('archive-strip')
+    if (strip) {
+      regTween(gsap.to(strip, {
+        x: () => -(strip.scrollWidth - window.innerWidth), ease: 'none',
+        scrollTrigger: { trigger: '#room-archive', start: 'top top', end: 'bottom bottom', scrub: true, invalidateOnRefresh: true },
+      }))
     }
+
+    // outro: white dissolve + logotype reprise
+    regTween(gsap.to('#bg-white', {
+      opacity: 1, ease: 'none',
+      scrollTrigger: { trigger: '#room-outro', start: 'center center', end: 'bottom bottom', scrub: true },
+    }))
+    regTween(gsap.fromTo('#outro-lockup',
+      { opacity: 0, scale: 0.92 },
+      { opacity: 1, scale: 1, ease: 'none',
+        scrollTrigger: { trigger: '#room-outro', start: 'top center', end: 'center center', scrub: true } }
+    ))
+
+    ScrollTrigger.refresh()
+    return () => kills.forEach((k) => k())
   }, [])
 
   return (
     <>
       <LoadingBoot onDone={onBootDone} />
+      <CustomCursor />
 
-      {/* Persistent 3D layer — pointer-events:none so wheel/touch scroll is never swallowed */}
+      {/* backdrop layers: body gradient < void (crt) < canvas < white (outro) */}
+      <div id="bg-void" />
+
+      {/* Persistent 3D layer — pointer-events:none so scroll/touch always pass through */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
         <Canvas
           gl={{ alpha: true, antialias: false, powerPreference: 'high-performance' }}
           dpr={[1, 1.75]}
           camera={{ position: [0, 0, 6], fov: 35 }}
-          eventSource={document.body}
           style={{ pointerEvents: 'none', touchAction: 'pan-y' }}
         >
           <CameraBridge cameraRef={cameraRef} />
-          <ScrollRig progress={scrollProgress} />
+          <CameraScript />
           <Suspense fallback={null}>
             <SkyEnvironment />
-            <HeroScene assembly={assembly} flareTarget={flareTarget} mouse={mouse} />
-            <PostFX />
+            <RoomGroup centerY={0} range={22}>
+              <HeroScene assembly={assembly} flareTarget={flareTarget} mouse={mouse} />
+            </RoomGroup>
+            <RoomGroup centerY={18} range={18}>
+              <ChromeFormsScene mouse={mouse} />
+            </RoomGroup>
+            <RoomGroup centerY={40} range={26}>
+              <CrystalCityScene />
+            </RoomGroup>
+            <RoomGroup centerY={64} range={17}>
+              <CRTRoomScene />
+            </RoomGroup>
+            <RoomGroup centerY={76} range={15}>
+              <ArtifactArchiveScene />
+            </RoomGroup>
+            <RoomGroup centerY={101} range={18}>
+              <OutroScene />
+            </RoomGroup>
+            <PostFX crtFx={crtFx} />
           </Suspense>
           <AdaptiveDpr pixelated />
         </Canvas>
       </div>
 
-      {/* Hero DOM layer (fades together on scroll) */}
+      <div id="bg-white" />
+      <div id="scanlines" />
+
+      {/* Hero DOM layer */}
       <div id="hero-dom">
         {booted && <LensFlare target={flareTarget} camera={cameraRef} />}
         <div className="hero-overlay">
@@ -178,22 +235,105 @@ export default function App() {
         <ScrollCue />
       </div>
 
-      {/* Scroll rooms — §01–§05 mount their 3D scenes here as they're built */}
       <main>
+        {/* §00 */}
         <section className="beat" id="room-hero" data-room="hero" />
-        {ROOMS.map((room) => (
-          <section className="beat" id={room.id} data-room={room.id.replace('room-', '')} key={room.id}>
-            <div className="room-card">
-              <FrostPanel>
-                <div className="room-num">{room.num} · {room.jp}</div>
-                <div className="chrome-type room-title">{room.title}</div>
-                <p className="room-copy">{room.copy}</p>
-                <div className="room-status">scene in production · 製作中</div>
+
+        {/* §01 — chrome forms */}
+        <section className="beat" id="room-chrome-forms" style={{ height: '170vh' }}>
+          {FORM_CAPTIONS.map((c, i) => (
+            <div
+              className="form-caption reveal"
+              key={i}
+              style={{ top: c.top, ...(c.side === 'left' ? { left: c.off } : { right: c.off }) }}
+            >
+              <FrostPanel style={{ padding: '1.2rem 1.5rem' }}>
+                <div className="room-num">§01 · {c.jp}</div>
+                <div className="caption-title">{c.title}</div>
+                <p className="room-copy">{c.copy}</p>
               </FrostPanel>
             </div>
-          </section>
-        ))}
+          ))}
+        </section>
+
+        {/* §02 — crystal city (long, slow beat) */}
+        <section className="beat" id="room-crystal-city" style={{ height: '280vh' }}>
+          <div className="form-caption reveal" style={{ top: '12%', left: '8%' }}>
+            <FrostPanel style={{ padding: '1.2rem 1.5rem' }}>
+              <div className="room-num">§02 · 未来</div>
+              <div className="caption-title">CRYSTAL CITY</div>
+              <p className="room-copy">Glass towers grown above the cloud sea. Refraction is the only weather here.</p>
+            </FrostPanel>
+          </div>
+          <div className="form-caption reveal" style={{ top: '68%', right: '8%' }}>
+            <FrostPanel style={{ padding: '1.2rem 1.5rem' }}>
+              <div className="room-num">§02 · 水晶</div>
+              <div className="caption-title">RIBBON ROADS</div>
+              <p className="room-copy">Chrome orbitals thread the skyline — traffic for a city with no ground.</p>
+            </FrostPanel>
+          </div>
+        </section>
+
+        {/* §03 — crt room */}
+        <section className="beat" id="room-crt" style={{ height: '150vh' }}>
+          <div className="crt-hud reveal">
+            <div className="crt-line">§03 // SURVEILLANCE FEED · 監視中</div>
+            <div className="crt-line dim">SIGNAL: 35 NODES · BLINK INTERVAL ASYNC</div>
+            <div className="crt-line dim">DO NOT ADJUST YOUR SET</div>
+          </div>
+        </section>
+
+        {/* §04 — artifact archive: sticky viewport + horizontal editorial strip */}
+        <section className="beat" id="room-archive" style={{ height: '320vh' }}>
+          <div className="archive-sticky">
+            <div className="archive-strip" id="archive-strip">
+              {DEVICES.map((d, i) => (
+                <article className="archive-slide" key={i}>
+                  <div className="archive-year">{d.year}</div>
+                  <div className="archive-card frost-panel">
+                    <div className="room-num">§04 · {d.jp}</div>
+                    <h2 className="archive-name">{d.name}</h2>
+                    <p className="room-copy">{d.copy}</p>
+                    <button className="archive-btn" data-magnetic onClick={() => setDevice(i)}>
+                      inspect · 詳細 →
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* §05 — outro */}
+        <section className="beat" id="room-outro" style={{ height: '190vh' }}>
+          <div className="outro-sticky">
+            <div id="outro-lockup">
+              <h2 className="chrome-type outro-title">SORA</h2>
+              <div className="hero-jp" style={{ fontSize: 'clamp(14px,1.8vw,24px)' }}>夢の終わり</div>
+            </div>
+          </div>
+          <footer className="outro-footer">
+            <div className="footer-shimmer" />
+            <div className="footer-row">
+              <span className="footer-item">SORA / 天空 — a y2k japanese-futurism experience</span>
+              <span className="footer-item mono">built with three.js · r3f · gsap · lenis</span>
+              <span className="footer-item mono">© 2026 · 空はまだ青い</span>
+            </div>
+          </footer>
+        </section>
       </main>
+
+      {/* §04 detail card */}
+      {device !== null && (
+        <div className="detail-veil" onClick={() => setDevice(null)}>
+          <div className="detail-card frost-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="room-num">{DEVICES[device].year} · {DEVICES[device].jp}</div>
+            <h3 className="archive-name" style={{ marginBottom: '0.8rem' }}>{DEVICES[device].name}</h3>
+            <p className="room-copy" style={{ marginBottom: '1.4rem' }}>{DEVICES[device].detail}</p>
+            <button className="archive-btn" data-magnetic onClick={() => setDevice(null)}>close · 閉じる</button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

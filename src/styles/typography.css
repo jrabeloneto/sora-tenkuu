@@ -230,3 +230,212 @@ section.beat[data-room='crt'] { background: transparent; } /* scene paints the v
   text-transform: uppercase;
   color: var(--steel-blue);
 }
+
+/* ============================================================
+   Full-experience additions (§01–§05 + cursor + overlays)
+   ============================================================ */
+
+/* ---------- backdrop layers ---------- */
+#bg-void {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(120% 100% at 50% 40%, #0A1230 0%, var(--void) 70%);
+  opacity: 0; pointer-events: none;
+}
+#bg-white {
+  position: fixed; inset: 0; z-index: 2;
+  background: linear-gradient(180deg, var(--frost-white), #ffffff);
+  opacity: 0; pointer-events: none;
+}
+#scanlines {
+  position: fixed; inset: 0; z-index: 5;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(8, 37, 103, 0) 0px,
+    rgba(8, 37, 103, 0) 2px,
+    rgba(6, 10, 24, 0.35) 3px,
+    rgba(6, 10, 24, 0) 4px
+  );
+  opacity: 0; pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+/* ---------- §01/§02 floating captions ---------- */
+.form-caption {
+  position: absolute;
+  width: min(340px, 78vw);
+  z-index: 2;
+}
+.caption-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(20px, 2.4vw, 28px);
+  letter-spacing: 0.05em;
+  color: var(--deep-blue);
+  margin-bottom: 0.5rem;
+}
+
+/* ---------- §03 CRT HUD ---------- */
+.crt-hud {
+  position: absolute;
+  top: 50%; left: 8vw;
+  transform: translateY(-50%);
+  z-index: 6;
+}
+.crt-line {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.3vw, 14px);
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--irid-cyan);
+  text-shadow: 0 0 12px rgba(127, 224, 232, 0.8), 0 0 2px rgba(127, 224, 232, 1);
+  margin-bottom: 0.8rem;
+}
+.crt-line.dim { color: var(--steel-blue); opacity: 0.8; font-size: 0.85em; text-shadow: none; }
+
+/* ---------- §04 archive: sticky horizontal editorial ---------- */
+.archive-sticky {
+  position: sticky; top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+.archive-strip {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: max-content;
+  will-change: transform;
+}
+.archive-slide {
+  position: relative;
+  width: 100vw;
+  height: 100%;
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 8vw 12vh;
+}
+.archive-year {
+  position: absolute;
+  top: 50%; right: 6vw;
+  transform: translateY(-50%) rotate(90deg);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(60px, 9vw, 140px);
+  letter-spacing: 0.08em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(27, 79, 217, 0.4);
+}
+.archive-card {
+  width: min(440px, 84vw);
+  padding: 1.6rem 1.9rem;
+}
+.archive-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: 0.03em;
+  color: var(--cobalt);
+  margin: 0.4rem 0 0.7rem;
+}
+.archive-btn {
+  margin-top: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--cobalt);
+  background: rgba(240, 246, 255, 0.35);
+  border: 1px solid rgba(27, 79, 217, 0.45);
+  border-radius: 999px;
+  padding: 0.7rem 1.3rem;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+.archive-btn:hover, .archive-btn:focus-visible {
+  background: rgba(240, 246, 255, 0.7);
+  box-shadow: 0 0 24px rgba(127, 224, 232, 0.5);
+  transform: translateY(-2px);
+  outline: none;
+}
+.archive-btn:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 3px; }
+
+/* ---------- §04 detail card ---------- */
+.detail-veil {
+  position: fixed; inset: 0; z-index: 20;
+  display: grid; place-items: center;
+  background: rgba(8, 37, 103, 0.25);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: veil-in 0.35s ease;
+}
+@keyframes veil-in { from { opacity: 0; } to { opacity: 1; } }
+.detail-card {
+  width: min(520px, 88vw);
+  padding: 2rem 2.2rem;
+  background: rgba(240, 246, 255, 0.75);
+  animation: card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(26px) scale(0.97); filter: blur(8px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+/* ---------- §05 outro ---------- */
+.outro-sticky {
+  position: sticky; top: 0;
+  height: 100vh;
+  display: grid; place-items: center;
+  z-index: 3;
+}
+#outro-lockup { text-align: center; opacity: 0; }
+.outro-title { font-size: clamp(56px, 11vw, 170px); }
+.outro-footer {
+  position: relative;
+  z-index: 6;
+  padding: 4rem 8vw 3rem;
+}
+.footer-shimmer {
+  height: 1px;
+  margin-bottom: 2rem;
+  background: linear-gradient(90deg, transparent, var(--irid-cyan), var(--irid-lilac), var(--irid-pink), transparent);
+  opacity: 0.8;
+}
+.footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2.5rem;
+  justify-content: space-between;
+}
+.footer-item {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--deep-blue);
+  opacity: 0.7;
+}
+.footer-item.mono { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.3em; }
+
+/* ---------- custom cursor ---------- */
+html.custom-cursor-on, html.custom-cursor-on * { cursor: none !important; }
+.cursor-orb {
+  position: fixed; top: 0; left: 0; z-index: 99;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 32% 30%, #ffffff 0%, var(--chrome-light) 35%, var(--chrome-base) 65%, var(--chrome-shadow) 100%);
+  box-shadow: 0 0 14px rgba(127, 224, 232, 0.7), inset 0 -2px 4px rgba(8, 37, 103, 0.4);
+  transition: width 0.25s ease, height 0.25s ease;
+}
+.cursor-orb.magnet { width: 26px; height: 26px; box-shadow: 0 0 26px rgba(127, 224, 232, 0.95), inset 0 -3px 5px rgba(8, 37, 103, 0.4); }
+.cursor-dot {
+  position: fixed; top: 0; left: 0; z-index: 98;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(135deg, var(--irid-cyan), var(--irid-lilac));
+  box-shadow: 0 0 8px rgba(127, 224, 232, 0.6);
+}
+
+@media (max-width: 640px) {
+  .archive-year { font-size: 56px; right: 4vw; }
+  .form-caption { left: 6vw !important; right: 6vw !important; width: auto; }
+}
