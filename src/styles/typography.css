@@ -1,0 +1,196 @@
+/* ============================================================
+   SORA / 天空 — typography.css + section chrome
+   ============================================================ */
+
+/* ---------- Chrome beveled display type ---------- */
+.chrome-type {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  /* liquid chrome gradient */
+  background-image: linear-gradient(
+    178deg,
+    #ffffff 0%,
+    var(--chrome-light) 18%,
+    var(--chrome-base) 38%,
+    var(--chrome-shadow) 50%,
+    var(--chrome-light) 56%,
+    var(--steel-blue) 74%,
+    var(--frost-white) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* bevel: bright top edge, cold drop below */
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.9))
+    drop-shadow(0 -1px 0 rgba(8, 37, 103, 0.35))
+    drop-shadow(0 14px 34px rgba(27, 79, 217, 0.35));
+}
+
+/* ---------- Hero overlay ---------- */
+.hero-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hero-lockup {
+  text-align: center;
+  will-change: transform;
+}
+
+.hero-kicker {
+  font-family: var(--font-mono);
+  font-size: clamp(10px, 1vw, 13px);
+  letter-spacing: 0.55em;
+  color: var(--cobalt);
+  text-transform: uppercase;
+  margin-bottom: 1.4rem;
+}
+
+.hero-title {
+  font-size: clamp(64px, 14vw, 220px);
+}
+
+.hero-jp {
+  font-family: var(--font-jp);
+  font-weight: 700;
+  font-size: clamp(18px, 2.4vw, 34px);
+  letter-spacing: 1.2em;
+  text-indent: 1.2em; /* optically recenters the tracked text */
+  color: var(--frost-white);
+  text-shadow: 0 0 18px rgba(127, 224, 232, 0.65), 0 2px 10px rgba(27, 79, 217, 0.45);
+  margin-top: 1.6rem;
+}
+
+.hero-sub {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: clamp(12px, 1.2vw, 15px);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--deep-blue);
+  opacity: 0.65;
+  margin-top: 2.2rem;
+}
+
+/* ---------- Frost glass panel ---------- */
+.frost-panel {
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
+  border-radius: 18px;
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 18px 50px rgba(8, 37, 103, 0.18),
+    0 0 40px rgba(127, 224, 232, 0.12);
+  color: var(--deep-blue);
+}
+
+/* ---------- Scroll cue ---------- */
+.scroll-cue {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.scroll-cue span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.45em;
+  color: var(--deep-blue);
+  opacity: 0.55;
+  text-transform: uppercase;
+}
+.scroll-cue svg { animation: cue-drift 2.4s ease-in-out infinite; }
+@keyframes cue-drift {
+  0%, 100% { transform: translateY(0); opacity: 0.9; }
+  55% { transform: translateY(8px); opacity: 0.35; }
+}
+
+/* ---------- Anamorphic lens flare (DOM, screen-space) ---------- */
+.lens-flare {
+  position: fixed;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+}
+
+/* ---------- Boot / loading sequence ---------- */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, var(--sky-zenith), var(--sky-mid));
+  transition: opacity 0.9s ease, visibility 0.9s ease;
+}
+.boot.done { opacity: 0; visibility: hidden; }
+.boot-logo { font-size: clamp(40px, 8vw, 110px); }
+.boot-bar {
+  width: min(280px, 50vw);
+  height: 1px;
+  margin-top: 28px;
+  background: rgba(240, 246, 255, 0.25);
+  overflow: hidden;
+}
+.boot-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--irid-cyan), var(--frost-white), var(--irid-lilac));
+  animation: boot-fill 1.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes boot-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.boot-status {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: var(--frost-white);
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+/* ---------- Section scaffolding (stubs for §01–§05) ---------- */
+main { position: relative; z-index: 1; }
+section.beat { height: 100vh; position: relative; }
+section.beat[data-room='crt'] { background: transparent; } /* scene paints the void */
+
+.beat-label {
+  position: absolute;
+  top: 50%;
+  left: 6vw;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--cobalt);
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue svg, .boot-bar i { animation: none; }
+}

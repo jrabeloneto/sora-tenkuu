@@ -1,0 +1,67 @@
+/* ============================================================
+   SORA / 天空 — tokens.css
+   Single source of truth for color. Mirrors AESTHETIC_SPEC.md §1.1
+   ============================================================ */
+
+:root {
+  /* Sky gradient — the soul of the piece */
+  --sky-zenith:    #4A90D9;
+  --sky-mid:       #87BFE8;
+  --sky-horizon:   #C5E4F7;
+  --frost-white:   #F0F6FF;
+
+  /* Chrome & metal */
+  --chrome-light:  #EAF4FF;
+  --chrome-base:   #B8C6D9;
+  --chrome-shadow: #6E84A3;
+  --steel-blue:    #8FA3BD;
+
+  /* Electric / accent */
+  --cobalt:        #1B4FD9;
+  --electric:      #2A5FE8;
+  --deep-blue:     #082567;
+
+  /* Iridescent micro-accents — glows, fresnel edges, flares ONLY */
+  --irid-cyan:     #7FE0E8;
+  --irid-lilac:    #C5B8E8;
+  --irid-pink:     #F0C8E0;
+
+  /* Near-black base for the CRT room */
+  --void:          #060A18;
+
+  /* Frost glass recipe */
+  --glass-fill:    rgba(240, 246, 255, 0.08);
+  --glass-stroke:  rgba(240, 246, 255, 0.35);
+  --glass-blur:    22px;
+
+  /* Type */
+  --font-display:  'Clash Display', 'Archivo', system-ui, sans-serif;
+  --font-body:     'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-jp:       'Noto Sans JP', sans-serif;
+  --font-mono:     'Space Mono', ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: auto; } /* Lenis owns scrolling */
+
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--deep-blue);
+  /* The sky lives behind everything; the canvas renders with alpha */
+  background: linear-gradient(
+    180deg,
+    var(--sky-zenith) 0%,
+    var(--sky-mid) 48%,
+    var(--sky-horizon) 82%,
+    var(--frost-white) 100%
+  );
+  background-attachment: fixed;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--cobalt); color: var(--frost-white); }
