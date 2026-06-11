@@ -17,6 +17,7 @@ import { ArtifactArchiveScene, OutroScene } from './scenes/ArtifactArchive.tsx'
 import { CameraScript, RoomGroup } from './components/CameraScript.tsx'
 import { LensFlare, LoadingBoot, ScrollCue, FrostPanel } from './components/Overlay.tsx'
 import { CustomCursor } from './components/CustomCursor.tsx'
+import { ErrorBoundary, webglOK } from './components/ErrorBoundary.tsx'
 import { useLenis, useReducedMotion } from './hooks/useLenis.ts'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -33,23 +34,34 @@ function CameraBridge({ cameraRef }: { cameraRef: React.MutableRefObject<THREE.C
 }
 
 /* PostFX — tuned on the hero; CRT room cranks aberration + grain via crtFx ref.
-   Mobile fallback: CA dropped, lighter bloom (brief §5). */
+   IMPORTANT: EffectComposer children must be effects only — conditionals or
+   fragments inside it crash at runtime, so mobile/desktop are two explicit trees. */
 function PostFX({ crtFx }: { crtFx: React.MutableRefObject<number> }) {
   const caRef = useRef<any>(null)
   const noiseRef = useRef<any>(null)
   useFrame(() => {
     const k = crtFx.current
-    if (caRef.current) {
-      caRef.current.offset.set(0.0009 * (1 + k * 7), 0.0006 * (1 + k * 7))
-    }
-    if (noiseRef.current?.blendMode?.opacity) {
-      noiseRef.current.blendMode.opacity.value = 0.055 + k * 0.3
-    }
+    try {
+      caRef.current?.offset?.set?.(0.0009 * (1 + k * 7), 0.0006 * (1 + k * 7))
+      if (noiseRef.current?.blendMode?.opacity) {
+        noiseRef.current.blendMode.opacity.value = 0.055 + k * 0.3
+      }
+    } catch { /* effect internals changed — degrade silently, never break the loop */ }
   })
+
+  if (IS_COARSE) {
+    return (
+      <EffectComposer multisampling={0}>
+        <Bloom mipmapBlur intensity={0.7} luminanceThreshold={0.78} luminanceSmoothing={0.2} />
+        <Noise ref={noiseRef} opacity={0.055} />
+        <Vignette eskil={false} offset={0.18} darkness={0.42} />
+      </EffectComposer>
+    )
+  }
   return (
     <EffectComposer multisampling={0}>
-      <Bloom mipmapBlur intensity={IS_COARSE ? 0.7 : 1.15} luminanceThreshold={0.78} luminanceSmoothing={0.2} />
-      {IS_COARSE ? <></> : <ChromaticAberration ref={caRef} offset={new THREE.Vector2(0.0009, 0.0006)} />}
+      <Bloom mipmapBlur intensity={1.15} luminanceThreshold={0.78} luminanceSmoothing={0.2} />
+      <ChromaticAberration ref={caRef} offset={new THREE.Vector2(0.0009, 0.0006)} />
       <Noise ref={noiseRef} opacity={0.055} />
       <Vignette eskil={false} offset={0.18} darkness={0.42} />
     </EffectComposer>
@@ -184,38 +196,47 @@ export default function App() {
 
       {/* Persistent 3D layer — pointer-events:none so scroll/touch always pass through */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
-        <Canvas
-          gl={{ alpha: true, antialias: false, powerPreference: 'high-performance' }}
-          dpr={[1, 1.75]}
-          camera={{ position: [0, 0, 6], fov: 35 }}
-          style={{ pointerEvents: 'none', touchAction: 'pan-y' }}
-        >
-          <CameraBridge cameraRef={cameraRef} />
-          <CameraScript />
-          <Suspense fallback={null}>
-            <SkyEnvironment />
-            <RoomGroup centerY={0} range={22}>
-              <HeroScene assembly={assembly} flareTarget={flareTarget} mouse={mouse} />
-            </RoomGroup>
-            <RoomGroup centerY={18} range={18}>
-              <ChromeFormsScene mouse={mouse} />
-            </RoomGroup>
-            <RoomGroup centerY={40} range={26}>
-              <CrystalCityScene />
-            </RoomGroup>
-            <RoomGroup centerY={64} range={17}>
-              <CRTRoomScene />
-            </RoomGroup>
-            <RoomGroup centerY={76} range={15}>
-              <ArtifactArchiveScene />
-            </RoomGroup>
-            <RoomGroup centerY={101} range={18}>
-              <OutroScene />
-            </RoomGroup>
-            <PostFX crtFx={crtFx} />
-          </Suspense>
-          <AdaptiveDpr pixelated />
-        </Canvas>
+        {webglOK() ? (
+          <ErrorBoundary label="canvas">
+            <Canvas
+              gl={{ alpha: true, antialias: false, powerPreference: 'high-performance' }}
+              dpr={[1, 1.75]}
+              camera={{ position: [0, 0, 6], fov: 35 }}
+              style={{ pointerEvents: 'none', touchAction: 'pan-y' }}
+              onCreated={({ gl }) => console.info('[SORA] canvas ready ·', gl.capabilities.isWebGL2 ? 'webgl2' : 'webgl1')}
+            >
+              <CameraBridge cameraRef={cameraRef} />
+              <CameraScript />
+              <Suspense fallback={null}>
+                <SkyEnvironment />
+                <RoomGroup centerY={0} range={22}>
+                  <HeroScene assembly={assembly} flareTarget={flareTarget} mouse={mouse} />
+                </RoomGroup>
+                <RoomGroup centerY={18} range={18}>
+                  <ChromeFormsScene mouse={mouse} />
+                </RoomGroup>
+                <RoomGroup centerY={40} range={26}>
+                  <CrystalCityScene />
+                </RoomGroup>
+                <RoomGroup centerY={64} range={17}>
+                  <CRTRoomScene />
+                </RoomGroup>
+                <RoomGroup centerY={76} range={15}>
+                  <ArtifactArchiveScene />
+                </RoomGroup>
+                <RoomGroup centerY={101} range={18}>
+                  <OutroScene />
+                </RoomGroup>
+                <PostFX crtFx={crtFx} />
+              </Suspense>
+              <AdaptiveDpr pixelated />
+            </Canvas>
+          </ErrorBoundary>
+        ) : (
+          <div className="frost-panel" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', padding: '1.4rem 1.8rem', pointerEvents: 'auto' }}>
+            WebGL2 indisponível neste navegador — a experiência 3D não pode iniciar. · WebGL2が必要です
+          </div>
+        )}
       </div>
 
       <div id="bg-white" />
