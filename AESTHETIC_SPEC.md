@@ -47,3 +47,6 @@ Focus-visible rings on buttons. Per-room visibility culling (RoomGroup, camera-y
 
 ## Done / next ideas
 All six rooms + cursor + fallbacks shipped. Possible polish passes: god-rays in §02, Mylar foil transition surfaces, draco-compressed GLB devices to replace primitives, leva tuning session for bloom/CA per room.
+
+## Changelog
+- v0.2.1 — **Crash fix (React 19 × r3p):** wrapEffect do @react-three/postprocessing memoiza com `JSON.stringify(props)`; no React 19 `ref` é prop, então refs em `<ChromaticAberration>`/`<Noise>` entravam no stringify e, após o 1º frame, `ref.current` (effect → camera → scene) fechava ciclo `children[0].parent` → TypeError + context lost. Agora CA e Noise são instanciados direto de `postprocessing` (dep explícita) e montados como `<primitive>`, mutados por frame sem passar pelo wrapper. Regra registrada: NUNCA passar ref a efeitos wrapped.

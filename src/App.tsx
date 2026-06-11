@@ -1,11 +1,12 @@
 // App.tsx — SORA / 天空 · master composition (full experience)
 // One persistent Canvas + camera flying a continuous vertical ascent:
 // hero → chrome forms → crystal city → crt room → artifact archive → dissolve.
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { AdaptiveDpr } from '@react-three/drei'
-import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
+import { ChromaticAberrationEffect, NoiseEffect, BlendFunction } from 'postprocessing'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -34,26 +35,38 @@ function CameraBridge({ cameraRef }: { cameraRef: React.MutableRefObject<THREE.C
 }
 
 /* PostFX — tuned on the hero; CRT room cranks aberration + grain via crtFx ref.
-   IMPORTANT: EffectComposer children must be effects only — conditionals or
-   fragments inside it crash at runtime, so mobile/desktop are two explicit trees. */
+   NOTE: never pass `ref` to wrapped effects — in React 19 the ref lands in props
+   and wrapEffect JSON.stringify(props) chokes on the circular scene graph
+   (this was the "Converting circular structure to JSON" crash). The effects we
+   need to mutate per-frame are instantiated directly and mounted as primitives. */
 function PostFX({ crtFx }: { crtFx: React.MutableRefObject<number> }) {
-  const caRef = useRef<any>(null)
-  const noiseRef = useRef<any>(null)
+  const ca = useMemo(
+    () =>
+      new ChromaticAberrationEffect({
+        offset: new THREE.Vector2(0.0009, 0.0006),
+        radialModulation: false,
+        modulationOffset: 0.15,
+      }),
+    []
+  )
+  const noise = useMemo(() => {
+    const n = new NoiseEffect({ blendFunction: BlendFunction.COLOR_DODGE, premultiply: true })
+    n.blendMode.opacity.value = 0.055
+    return n
+  }, [])
+  useEffect(() => () => { ca.dispose(); noise.dispose() }, [ca, noise])
+
   useFrame(() => {
     const k = crtFx.current
-    try {
-      caRef.current?.offset?.set?.(0.0009 * (1 + k * 7), 0.0006 * (1 + k * 7))
-      if (noiseRef.current?.blendMode?.opacity) {
-        noiseRef.current.blendMode.opacity.value = 0.055 + k * 0.3
-      }
-    } catch { /* effect internals changed — degrade silently, never break the loop */ }
+    ca.offset.set(0.0009 * (1 + k * 7), 0.0006 * (1 + k * 7))
+    noise.blendMode.opacity.value = 0.055 + k * 0.3
   })
 
   if (IS_COARSE) {
     return (
       <EffectComposer multisampling={0}>
         <Bloom mipmapBlur intensity={0.7} luminanceThreshold={0.78} luminanceSmoothing={0.2} />
-        <Noise ref={noiseRef} opacity={0.055} />
+        <primitive object={noise} />
         <Vignette eskil={false} offset={0.18} darkness={0.42} />
       </EffectComposer>
     )
@@ -61,8 +74,8 @@ function PostFX({ crtFx }: { crtFx: React.MutableRefObject<number> }) {
   return (
     <EffectComposer multisampling={0}>
       <Bloom mipmapBlur intensity={1.15} luminanceThreshold={0.78} luminanceSmoothing={0.2} />
-      <ChromaticAberration ref={caRef} offset={new THREE.Vector2(0.0009, 0.0006)} />
-      <Noise ref={noiseRef} opacity={0.055} />
+      <primitive object={ca} />
+      <primitive object={noise} />
       <Vignette eskil={false} offset={0.18} darkness={0.42} />
     </EffectComposer>
   )
